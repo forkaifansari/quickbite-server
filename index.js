@@ -6,26 +6,39 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// IMPORTANT: Use Environment Variables in Render
 const razorpay = new Razorpay({
-  key_id: "YOUR_KEY_ID",
-  key_secret: "YOUR_SECRET",
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+app.get("/", (req, res) => {
+  res.send("QuickBite backend is running 🚀");
+});
+
+// Create Order
 app.post("/createOrder", async (req, res) => {
   const { amount } = req.body;
 
+  if (!amount) {
+    return res.status(400).json({ error: "Amount is required" });
+  }
+
   try {
     const options = {
-      amount: amount * 100,
+      amount: amount * 100, // Convert ₹ to paise
       currency: "INR",
-      receipt: "rcpt_" + Date.now(),
+      receipt: "receipt_" + Date.now(),
     };
 
     const order = await razorpay.orders.create(options);
-    res.json(order);
+    res.json({ success: true, order });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Order Error:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+// Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
